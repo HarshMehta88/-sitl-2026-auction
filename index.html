@@ -91,8 +91,22 @@ button.bad{
 .player{
   font-size:clamp(28px,5vw,48px);
   font-weight:900
+} 
+  .playerdetails{
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+  margin-top:10px;
+  margin-bottom:10px;
 }
-
+.playerdetails span{
+  background:#172340;
+  border:1px solid #2a3a5c;
+  border-radius:10px;
+  padding:7px 10px;
+  font-size:14px;
+  font-weight:700;
+}
 .bid{
   font-size:clamp(38px,7vw,66px);
   font-weight:900;
@@ -246,7 +260,7 @@ Waiting…
 </div>
 
 <div id="prole" class="muted"></div>
-
+  <div id="pdetails" class="playerdetails"></div>
 <div id="pbid" class="bid">
 ₹10,000
 </div>
@@ -480,7 +494,8 @@ Current player
 <div id="aname" class="player"></div>
 
 <div id="arole" class="muted"></div>
-
+  <div id="adetails" class="playerdetails"></div>
+  
 <div id="abid" class="bid"></div>
 
 <span id="aleader" class="pill"></span>
@@ -805,16 +820,24 @@ function render() {
 
 
   // Role
-
-  ['prole','trole','arole'].forEach(id => {
-
-    document
-      .getElementById(id)
-      .textContent =
-        p.role || '';
-
-  });
-
+// Role
+['prole','trole','arole'].forEach(id => {
+  document
+    .getElementById(id)
+    .textContent =
+      p.role || '';
+});
+// Player details
+const details = `
+  <span>🏏 Batting: ${p.batting || '—'}</span>
+  <span>🎳 Bowling: ${p.bowling || '—'}</span>
+  <span>🧤 Wicketkeeper: ${p.wicketkeeper || 'No'}</span>
+`;
+['pdetails','tdetails','adetails'].forEach(id => {
+  document
+    .getElementById(id)
+    .innerHTML = details;
+}); 
 
   // Bid
 
