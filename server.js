@@ -219,9 +219,12 @@ const state = {
 
   bid: 10000,
 
+  timer: 30,
+
+  going: 0,
+
   history: []
 };
-
 
 // =====================================
 // HELPERS
@@ -315,9 +318,41 @@ function resetBid() {
 
   state.bid =
     current()?.base || 10000;
+  resetAuctionTimer();
+}
+function resetAuctionTimer() {
+
+  state.timer = 30;
+
+  state.going = 0;
+
 }
 
 
+let auctionTimer = null;
+
+
+function startAuctionTimer() {
+
+  clearInterval(auctionTimer);
+
+  auctionTimer = setInterval(() => {
+
+    if (!state.open || state.finished) {
+      return;
+    }
+
+    if (state.timer > 0) {
+
+      state.timer--;
+
+      emit();
+
+    }
+
+  }, 1000);
+
+}
 function advance() {
 
   state.index++;
@@ -440,23 +475,28 @@ io.on('connection', socket => {
   });
 
 
-  socket.on('admin:open', () => {
+ socket.on('admin:open', () => {
 
-    if (!socket.isAdmin) return;
+  if (!socket.isAdmin) return;
 
-    if (state.finished) return;
+  if (state.finished) return;
 
-    state.started = true;
+  state.started = true;
 
-    state.open = true;
+  state.open = true;
 
-    addLog(
-      `Bidding opened for ${current()?.name}`
-    );
+  state.going = 0;
 
-    emit();
-  });
+  state.timer = 30;
 
+  addLog(
+    `Bidding opened for ${current()?.name}`
+  );
+
+  startAuctionTimer();
+
+  emit();
+});
 
   socket.on('admin:pause', () => {
 
@@ -470,8 +510,37 @@ io.on('connection', socket => {
 
     emit();
   });
+// ===================================
+// GOING ONCE / TWICE / THRICE
+// ===================================
 
+socket.on('admin:going', stage => {
 
+  if (!socket.isAdmin) return;
+
+  if (!state.open) return;
+
+  if (!state.leader) return;
+
+  stage = Number(stage);
+
+  if (![1, 2, 3].includes(stage)) return;
+
+  state.going = stage;
+
+  const words = {
+    1: 'GOING ONCE',
+    2: 'GOING TWICE',
+    3: 'GOING THRICE'
+  };
+
+  addLog(
+    `${words[stage]} — ${current()?.name}`
+  );
+
+  emit();
+
+});
   // ===================================
   // SOLD
   // ===================================
@@ -523,7 +592,9 @@ io.on('connection', socket => {
 
 
     advance();
+    state.going = 0;
 
+state.timer = 30;
     emit();
   });
 
@@ -741,18 +812,22 @@ io.on('connection', socket => {
       }
 
 
-      state.leader =
-        teamId;
+     state.leader =
+  teamId;
 
 
-      addLog(
-        `Team ${teamId} bid ₹${amount.toLocaleString('en-IN')} for ${current()?.name}`
-      );
+// New bid resets the auction countdown
+state.timer = 30;
+state.going = 0;
 
 
-      state.bid =
-        nextBid(amount);
+addLog(
+  `Team ${teamId} bid ₹${amount.toLocaleString('en-IN')} for ${current()?.name}`
+);
 
+
+state.bid =
+  nextBid(amount);
 
       emit();
     }
