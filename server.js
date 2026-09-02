@@ -114,31 +114,21 @@ let state = {
   finished: false
 };
 
-const minSlots = () =>
-  Math.max(
-    0,
-    9 - teams.reduce((a, t) => a + t.count, 0)
-  );
-
 function current() {
   return players[state.index] || null;
 }
 
 function nextBid(v) {
-  return v < 50000
-    ? v + 5000
-    : v + 10000;
+  return v < 50000 ? v + 5000 : v + 10000;
 }
 
 function canBid(teamId, amount) {
   const t = teams[teamId - 1];
 
-  if (!t || t.count >= 9) {
-    return false;
-  }
+  if (!t) return false;
+  if (t.count >= 9) return false;
 
-  const reserve =
-    (9 - t.count - 1) * 10000;
+  const reserve = (9 - t.count - 1) * 10000;
 
   return t.purse - amount >= reserve;
 }
@@ -170,15 +160,13 @@ function addLog(text) {
     text
   });
 
-  state.history =
-    state.history.slice(0, 100);
+  state.history = state.history.slice(0, 100);
 }
 
 function resetBid() {
   state.open = false;
   state.leader = null;
-  state.bid =
-    current()?.base || 10000;
+  state.bid = current()?.base || 10000;
 }
 
 function advance() {
@@ -195,57 +183,59 @@ function advance() {
 
 io.on('connection', socket => {
 
-  // Authentication status for this connection
+  // Authentication state belongs to this socket/browser connection.
   socket.isAdmin = false;
   socket.teamId = null;
 
-  // Send current auction state
   socket.emit('state', publicState());
 
-  // =========================
-  // ADMIN LOGIN
-  // =========================
+  // -------------------------
+  // ADMIN AUTHENTICATION
+  // -------------------------
 
   socket.on('admin:auth', pin => {
-    const success =
-      String(pin) === String(ADMIN_PIN);
+    const ok = String(pin) === String(ADMIN_PIN);
 
-    if (success) {
+    if (ok) {
       socket.isAdmin = true;
+    } else {
+      socket.isAdmin = false;
     }
 
-    socket.emit('admin:auth', success);
+    socket.emit('admin:auth', ok);
   });
 
-  // =========================
-  // TEAM LOGIN
-  // =========================
+  // -------------------------
+  // TEAM AUTHENTICATION
+  // -------------------------
 
-  socket.on('team:auth', ({ teamId, pin } = {}) => {
-
+  socket.on('team:auth', ({ teamId, pin }) => {
     teamId = Number(teamId);
 
-    const validTeam =
-      TEAM_PINS[teamId] !== undefined;
+    const ok =
+      TEAM_PINS[teamId] &&
+      String(pin) === String(TEAM_PINS[teamId]);
 
-    const success =
-      validTeam &&
-      String(pin) ===
-      String(TEAM_PINS[teamId]);
-
-    if (success) {
+    if (ok) {
       socket.teamId = teamId;
-    }
 
-    socket.emit('team:auth', {
-      success,
-      teamId: success ? teamId : null
-    });
+      socket.emit('team:auth', {
+        ok: true,
+        teamId
+      });
+    } else {
+      socket.teamId = null;
+
+      socket.emit('team:auth', {
+        ok: false,
+        teamId
+      });
+    }
   });
 
-  // =========================
+  // -------------------------
   // ADMIN CONTROLS
-  // =========================
+  // -------------------------
 
   socket.on('admin:start', () => {
     if (!socket.isAdmin) return;
@@ -274,6 +264,7 @@ io.on('connection', socket => {
 
     state.open = false;
     addLog('Bidding paused');
+
     emit();
   });
 
@@ -281,9 +272,7 @@ io.on('connection', socket => {
     if (!socket.isAdmin) return;
     if (!state.open || !state.leader) return;
 
-    const t =
-      teams[state.leader - 1];
-
+    const t = teams[state.leader - 1];
     const p = current();
 
     if (!t || !p) return;
@@ -319,9 +308,7 @@ io.on('connection', socket => {
 
     p.status = 'unsold';
 
-    addLog(
-      `UNSOLD — ${p.name}`
-    );
+    addLog(`UNSOLD — ${p.name}`);
 
     advance();
     emit();
@@ -344,46 +331,42 @@ io.on('connection', socket => {
   socket.on('admin:undo', () => {
     if (!socket.isAdmin) return;
 
-    const last =
-      state.history.find(
-        h => h.text.startsWith('SOLD')
-      );
+    const last = state.history.find(
+      h => h.text.startsWith('SOLD')
+    );
 
     if (!last) return;
 
-    const match =
-      last.text.match(
-        /SOLD — (.+) to Team (\d+) for ₹([\d,]+)/
-      );
+    const match = last.text.match(
+      /SOLD — (.+) to Team (\d+) for ₹([\d,]+)/
+    );
 
     if (!match) return;
 
     const [, name, tid, priceText] = match;
 
-    const price =
-      Number(priceText.replace(/,/g, ''));
+    const price = Number(
+      priceText.replace(/,/g, '')
+    );
 
-    const t =
-      teams[Number(tid) - 1];
+    const t = teams[Number(tid) - 1];
 
-    const pi =
-      players.findIndex(
-        p =>
-          p.name === name &&
-          p.status === 'sold'
-      );
+    const pi = players.findIndex(
+      p =>
+        p.name === name &&
+        p.status === 'sold'
+    );
 
-    if (pi < 0) return;
+    if (pi < 0 || !t) return;
 
     const p = players[pi];
 
     t.purse += price;
     t.count--;
 
-    t.players =
-      t.players.filter(
-        x => x.id !== p.id
-      );
+    t.players = t.players.filter(
+      x => x.id !== p.id
+    );
 
     p.status = 'available';
 
@@ -397,26 +380,25 @@ io.on('connection', socket => {
 
     resetBid();
 
-    addLog(
-      `UNDO — ${p.name}`
-    );
+    addLog(`UNDO — ${p.name}`);
 
     emit();
   });
 
-  // =========================
+  // -------------------------
   // TEAM BIDDING
-  // =========================
+  // -------------------------
 
   socket.on('team:bid', teamId => {
 
     teamId = Number(teamId);
 
-    // Must be logged in as a team
-    if (!socket.teamId) return;
-
-    // A team can ONLY bid for itself
-    if (socket.teamId !== teamId) return;
+    // SECURITY CHECK:
+    // Browser must have authenticated as THIS team.
+    if (socket.teamId !== teamId) {
+      socket.emit('team:error', 'Team PIN required');
+      return;
+    }
 
     if (!state.open) return;
     if (!state.started) return;
@@ -429,6 +411,10 @@ io.on('connection', socket => {
     }
 
     if (!canBid(teamId, amount)) {
+      socket.emit(
+        'team:error',
+        'Insufficient purse or squad limit reached'
+      );
       return;
     }
 
@@ -438,8 +424,7 @@ io.on('connection', socket => {
       `Team ${teamId} bid ₹${amount.toLocaleString('en-IN')} for ${current()?.name}`
     );
 
-    state.bid =
-      nextBid(amount);
+    state.bid = nextBid(amount);
 
     emit();
   });
