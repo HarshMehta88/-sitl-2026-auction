@@ -1,14 +1,964 @@
-<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>SITL 2026 Auction</title><script src="/socket.io/socket.io.js"></script><style>
-:root{font-family:Inter,system-ui,-apple-system,Segoe UI,sans-serif;color:#f8fafc;background:#07101f}*{box-sizing:border-box}body{margin:0}.top{padding:16px 20px;background:#0d1830;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:2}.wrap{max-width:1200px;margin:auto;padding:20px}.nav{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px}button,select{border:0;border-radius:12px;padding:12px 15px;font-weight:800;background:#223052;color:#fff;cursor:pointer}button.primary{background:#fff;color:#07101f}button.good{background:#198754}button.bad{background:#b42336}.grid{display:grid;grid-template-columns:2fr 1fr;gap:16px}.card{background:#0e1931;border:1px solid #243353;border-radius:18px;padding:18px;margin-bottom:16px}.muted{color:#9eabc6}.player{font-size:clamp(28px,5vw,48px);font-weight:900}.bid{font-size:clamp(38px,7vw,66px);font-weight:900;margin:15px 0}.pill{display:inline-block;padding:6px 10px;border-radius:999px;background:#233252}.teams{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}.team{background:#172340;border-radius:14px;padding:13px}.team b{display:block;font-size:18px}.hidden{display:none}.log{max-height:320px;overflow:auto}.row{display:flex;justify-content:space-between;gap:10px;padding:8px 0;border-bottom:1px solid #23304b}.bigbid{width:100%;font-size:24px;padding:18px}.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}.stat{background:#172340;border-radius:14px;padding:14px}.stat b{font-size:24px;display:block}@media(max-width:800px){.grid{grid-template-columns:1fr}.teams{grid-template-columns:1fr 1fr}.stats{grid-template-columns:1fr 1fr}}
-</style></head><body><div class="top"><div><b>SITL 2026</b><div class="muted">Live Player Auction</div></div><div id="live">OFFLINE</div></div><div class="wrap"><div class="nav"><button class="primary" onclick="view('public')">Public</button><button onclick="view('team')">Team Bidding</button><button onclick="view('admin')">Admin</button></div>
-<section id="public"><div class="grid"><div class="card"><div class="muted">🔴 LIVE PLAYER</div><div id="pname" class="player">Waiting…</div><div id="prole" class="muted"></div><div id="pbid" class="bid">₹10,000</div><span id="pleader" class="pill">No bids yet</span></div><div class="card"><h3>Auction</h3><div class="stats"><div class="stat"><span class="muted">Player</span><b id="pnum">1/59</b></div><div class="stat"><span class="muted">Sold</span><b id="sold">0</b></div><div class="stat"><span class="muted">Status</span><b id="status">Ready</b></div></div></div></div><div class="card"><h3>Teams</h3><div id="teams" class="teams"></div></div><div class="card"><h3>Recent activity</h3><div id="plog" class="log"></div></div></section>
-<section id="team" class="hidden"><div class="card"><h2>Team Bidding</h2><select id="teamSelect"></select><div class="muted" style="margin-top:18px">Current player</div><div id="tname" class="player"></div><div id="trole" class="muted"></div><div id="tbid" class="bid"></div><span id="tleader" class="pill"></span><button class="primary bigbid" onclick="bid()">BID</button></div><div class="card"><h3>My Team</h3><div id="myteam"></div></div></section>
-<section id="admin" class="hidden"><div class="card"><h2>Admin Panel</h2><div id="auth"><input id="pin" type="password" placeholder="Admin PIN" style="padding:12px;border-radius:10px;border:0"><button class="primary" onclick="auth()">Login</button></div><div id="controls" class="hidden"><div class="nav"><button class="primary" onclick="emit('admin:start')">START</button><button class="primary" onclick="emit('admin:open')">OPEN BIDDING</button><button onclick="emit('admin:pause')">PAUSE</button><button class="good" onclick="emit('admin:sold')">SOLD</button><button onclick="emit('admin:unsold')">UNSOLD</button><button onclick="emit('admin:next')">NEXT</button><button class="bad" onclick="emit('admin:undo')">UNDO</button></div><div class="muted">Current player</div><div id="aname" class="player"></div><div id="arole" class="muted"></div><div id="abid" class="bid"></div><span id="aleader" class="pill"></span><div class="card" style="margin-top:16px"><h3>Teams</h3><div id="ateams" class="teams"></div></div></div></div><div class="card"><h3>Auction log</h3><div id="alog" class="log"></div></div></section>
-</div><script>
-const s=io();let S=null,admin=false; s.on('connect',()=>document.getElementById('live').textContent='● LIVE');s.on('disconnect',()=>document.getElementById('live').textContent='OFFLINE');s.on('state',x=>{S=x;render()});s.on('admin:auth',ok=>{admin=ok;document.getElementById('auth').classList.toggle('hidden',ok);document.getElementById('controls').classList.toggle('hidden',!ok);if(!ok)alert('Wrong PIN')});
-function fmt(n){return Number(n).toLocaleString('en-IN')} function emit(e,v){s.emit(e,v)} function view(v){['public','team','admin'].forEach(x=>document.getElementById(x).classList.toggle('hidden',x!==v));}
-function auth(){emit('admin:auth',document.getElementById('pin').value)} function bid(){emit('team:bid',document.getElementById('teamSelect').value)}
-function cards(el){el.innerHTML=S.teams.map(t=>`<div class="team"><b>${t.name}</b><span class="muted">₹${fmt(t.purse)} left · ${t.count}/9</span></div>`).join('')}
-function render(){if(!S)return;const p=S.current||{};['pname','tname','aname'].forEach(id=>document.getElementById(id).textContent=p.name||'Auction complete');['prole','trole','arole'].forEach(id=>document.getElementById(id).textContent=p.role||'');['pbid','tbid','abid'].forEach(id=>document.getElementById(id).textContent='₹'+fmt(S.state.bid));['pleader','tleader','aleader'].forEach(id=>document.getElementById(id).textContent=S.state.leader?S.teams[S.state.leader-1].name:'No bids yet');document.getElementById('pnum').textContent=Math.min(S.state.index+1,S.players.length)+'/'+S.players.length;document.getElementById('sold').textContent=S.players.filter(p=>p.status==='sold').length;document.getElementById('status').textContent=S.state.finished?'Finished':S.state.open?'Bidding LIVE':'Paused';cards(document.getElementById('teams'));cards(document.getElementById('ateams'));const log=S.state.history.map(x=>`<div class="row"><span>${x.text}</span><span class="muted">${new Date(x.time).toLocaleTimeString()}</span></div>`).join('');document.getElementById('plog').innerHTML=log;document.getElementById('alog').innerHTML=log;const sel=document.getElementById('teamSelect');if(!sel.options.length)sel.innerHTML=S.teams.map(t=>`<option value="${t.id}">${t.name}</option>`).join('');const t=S.teams[Number(sel.value||1)-1];document.getElementById('myteam').innerHTML=`<b>${t.name}</b><p>₹${fmt(t.purse)} remaining · ${t.count}/9 players</p>`}
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+
+<title>SITL 2026 Auction</title>
+
+<script src="/socket.io/socket.io.js"></script>
+
+<style>
+:root{
+  font-family:Inter,system-ui,-apple-system,Segoe UI,sans-serif;
+  color:#f8fafc;
+  background:#07101f
+}
+
+*{
+  box-sizing:border-box
+}
+
+body{
+  margin:0
+}
+
+.top{
+  padding:16px 20px;
+  background:#0d1830;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  position:sticky;
+  top:0;
+  z-index:2
+}
+
+.wrap{
+  max-width:1200px;
+  margin:auto;
+  padding:20px
+}
+
+.nav{
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+  margin-bottom:18px
+}
+
+button,select{
+  border:0;
+  border-radius:12px;
+  padding:12px 15px;
+  font-weight:800;
+  background:#223052;
+  color:#fff;
+  cursor:pointer
+}
+
+button.primary{
+  background:#fff;
+  color:#07101f
+}
+
+button.good{
+  background:#198754
+}
+
+button.bad{
+  background:#b42336
+}
+
+.grid{
+  display:grid;
+  grid-template-columns:2fr 1fr;
+  gap:16px
+}
+
+.card{
+  background:#0e1931;
+  border:1px solid #243353;
+  border-radius:18px;
+  padding:18px;
+  margin-bottom:16px
+}
+
+.muted{
+  color:#9eabc6
+}
+
+.player{
+  font-size:clamp(28px,5vw,48px);
+  font-weight:900
+}
+
+.bid{
+  font-size:clamp(38px,7vw,66px);
+  font-weight:900;
+  margin:15px 0
+}
+
+.pill{
+  display:inline-block;
+  padding:6px 10px;
+  border-radius:999px;
+  background:#233252
+}
+
+.teams{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:10px
+}
+
+.team{
+  background:#172340;
+  border-radius:14px;
+  padding:13px
+}
+
+.team b{
+  display:block;
+  font-size:18px
+}
+
+.hidden{
+  display:none
+}
+
+.log{
+  max-height:320px;
+  overflow:auto
+}
+
+.row{
+  display:flex;
+  justify-content:space-between;
+  gap:10px;
+  padding:8px 0;
+  border-bottom:1px solid #23304b
+}
+
+.bigbid{
+  width:100%;
+  font-size:24px;
+  padding:18px
+}
+
+.stats{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:10px
+}
+
+.stat{
+  background:#172340;
+  border-radius:14px;
+  padding:14px
+}
+
+.stat b{
+  font-size:24px;
+  display:block
+}
+
+.pinbox{
+  background:#172340;
+  border-radius:14px;
+  padding:18px;
+  margin-top:18px
+}
+
+.pinbox input{
+  width:100%;
+  padding:14px;
+  border-radius:10px;
+  border:0;
+  font-size:18px;
+  margin:10px 0
+}
+
+.authok{
+  background:#123d2a;
+  border:1px solid #198754;
+  padding:12px;
+  border-radius:10px;
+  margin-bottom:15px
+}
+
+@media(max-width:800px){
+  .grid{
+    grid-template-columns:1fr
+  }
+
+  .teams{
+    grid-template-columns:1fr 1fr
+  }
+
+  .stats{
+    grid-template-columns:1fr 1fr
+  }
+}
+</style>
+</head>
+
+<body>
+
+<div class="top">
+  <div>
+    <b>SITL 2026</b>
+    <div class="muted">Live Player Auction</div>
+  </div>
+
+  <div id="live">OFFLINE</div>
+</div>
+
+<div class="wrap">
+
+<div class="nav">
+  <button class="primary" onclick="view('public')">
+    Public
+  </button>
+
+  <button onclick="view('team')">
+    Team Bidding
+  </button>
+
+  <button onclick="view('admin')">
+    Admin
+  </button>
+</div>
+
+
+<!-- PUBLIC -->
+
+<section id="public">
+
+<div class="grid">
+
+<div class="card">
+
+<div class="muted">🔴 LIVE PLAYER</div>
+
+<div id="pname" class="player">
+Waiting…
+</div>
+
+<div id="prole" class="muted"></div>
+
+<div id="pbid" class="bid">
+₹10,000
+</div>
+
+<span id="pleader" class="pill">
+No bids yet
+</span>
+
+</div>
+
+
+<div class="card">
+
+<h3>Auction</h3>
+
+<div class="stats">
+
+<div class="stat">
+<span class="muted">Player</span>
+<b id="pnum">1/59</b>
+</div>
+
+<div class="stat">
+<span class="muted">Sold</span>
+<b id="sold">0</b>
+</div>
+
+<div class="stat">
+<span class="muted">Status</span>
+<b id="status">Ready</b>
+</div>
+
+</div>
+
+</div>
+
+</div>
+
+
+<div class="card">
+
+<h3>Teams</h3>
+
+<div id="teams" class="teams"></div>
+
+</div>
+
+
+<div class="card">
+
+<h3>Recent activity</h3>
+
+<div id="plog" class="log"></div>
+
+</div>
+
+</section>
+
+
+<!-- TEAM -->
+
+<section id="team" class="hidden">
+
+<div class="card">
+
+<h2>Team Bidding</h2>
+
+<select id="teamSelect" onchange="teamChanged()"></select>
+
+
+<!-- PIN LOGIN -->
+
+<div id="teamLogin" class="pinbox">
+
+<h3 id="pinTitle">
+Team Authentication
+</h3>
+
+<div class="muted">
+Enter your team's PIN to start bidding.
+</div>
+
+<input
+  id="teamPin"
+  type="password"
+  inputmode="numeric"
+  placeholder="Team PIN"
+  autocomplete="off"
+>
+
+<button
+  class="primary"
+  style="width:100%"
+  onclick="teamAuth()"
+>
+  UNLOCK TEAM
+</button>
+
+</div>
+
+
+<!-- AUTHENTICATED TEAM -->
+
+<div id="teamUnlocked" class="hidden">
+
+<div class="authok">
+  🔐 <b id="authTeamName"></b> authenticated
+</div>
+
+<div class="muted">
+Current player
+</div>
+
+<div id="tname" class="player"></div>
+
+<div id="trole" class="muted"></div>
+
+<div id="tbid" class="bid"></div>
+
+<span id="tleader" class="pill">
+No bids yet
+</span>
+
+<button
+  class="primary bigbid"
+  onclick="bid()"
+>
+  BID
+</button>
+
+</div>
+
+</div>
+
+
+<div class="card">
+
+<h3>My Team</h3>
+
+<div id="myteam"></div>
+
+</div>
+
+</section>
+
+
+<!-- ADMIN -->
+
+<section id="admin" class="hidden">
+
+<div class="card">
+
+<h2>Admin Panel</h2>
+
+<div id="auth">
+
+<input
+  id="pin"
+  type="password"
+  placeholder="Admin PIN"
+  style="padding:12px;border-radius:10px;border:0"
+>
+
+<button
+  class="primary"
+  onclick="auth()"
+>
+  Login
+</button>
+
+</div>
+
+
+<div id="controls" class="hidden">
+
+<div class="nav">
+
+<button
+  class="primary"
+  onclick="emit('admin:start')"
+>
+START
+</button>
+
+<button
+  class="primary"
+  onclick="emit('admin:open')"
+>
+OPEN BIDDING
+</button>
+
+<button
+  onclick="emit('admin:pause')"
+>
+PAUSE
+</button>
+
+<button
+  class="good"
+  onclick="emit('admin:sold')"
+>
+SOLD
+</button>
+
+<button
+  onclick="emit('admin:unsold')"
+>
+UNSOLD
+</button>
+
+<button
+  onclick="emit('admin:next')"
+>
+NEXT
+</button>
+
+<button
+  class="bad"
+  onclick="emit('admin:undo')"
+>
+UNDO
+</button>
+
+</div>
+
+
+<div class="muted">
+Current player
+</div>
+
+<div id="aname" class="player"></div>
+
+<div id="arole" class="muted"></div>
+
+<div id="abid" class="bid"></div>
+
+<span id="aleader" class="pill"></span>
+
+
+<div class="card" style="margin-top:16px">
+
+<h3>Teams</h3>
+
+<div id="ateams" class="teams"></div>
+
+</div>
+
+</div>
+
+</div>
+
+
+<div class="card">
+
+<h3>Auction log</h3>
+
+<div id="alog" class="log"></div>
+
+</div>
+
+</section>
+
+</div>
+
+
+<script>
+
+const s = io();
+
+let S = null;
+let admin = false;
+let authenticatedTeam = null;
+
+
+// -------------------------
+// CONNECTION
+// -------------------------
+
+s.on('connect', () => {
+  document.getElementById('live').textContent = '● LIVE';
+});
+
+s.on('disconnect', () => {
+  document.getElementById('live').textContent = 'OFFLINE';
+
+  authenticatedTeam = null;
+
+  document
+    .getElementById('teamLogin')
+    .classList.remove('hidden');
+
+  document
+    .getElementById('teamUnlocked')
+    .classList.add('hidden');
+});
+
+
+// -------------------------
+// STATE
+// -------------------------
+
+s.on('state', x => {
+  S = x;
+  render();
+});
+
+
+// -------------------------
+// ADMIN AUTH
+// -------------------------
+
+s.on('admin:auth', ok => {
+
+  admin = ok;
+
+  document
+    .getElementById('auth')
+    .classList.toggle('hidden', ok);
+
+  document
+    .getElementById('controls')
+    .classList.toggle('hidden', !ok);
+
+  if (!ok) {
+    alert('Wrong Admin PIN');
+  }
+
+});
+
+
+// -------------------------
+// TEAM AUTH
+// -------------------------
+
+s.on('team:auth', result => {
+
+  if (!result.ok) {
+
+    authenticatedTeam = null;
+
+    document
+      .getElementById('teamUnlocked')
+      .classList.add('hidden');
+
+    document
+      .getElementById('teamLogin')
+      .classList.remove('hidden');
+
+    alert('Wrong Team PIN');
+
+    return;
+  }
+
+
+  authenticatedTeam = Number(result.teamId);
+
+  const t =
+    S.teams[authenticatedTeam - 1];
+
+  document
+    .getElementById('teamLogin')
+    .classList.add('hidden');
+
+  document
+    .getElementById('teamUnlocked')
+    .classList.remove('hidden');
+
+  document
+    .getElementById('authTeamName')
+    .textContent = t.name;
+
+  render();
+
+});
+
+
+// -------------------------
+// TEAM ERROR
+// -------------------------
+
+s.on('team:error', message => {
+  alert(message);
+});
+
+
+// -------------------------
+// HELPERS
+// -------------------------
+
+function fmt(n) {
+  return Number(n).toLocaleString('en-IN');
+}
+
+function emit(e, v) {
+  s.emit(e, v);
+}
+
+
+// -------------------------
+// VIEW
+// -------------------------
+
+function view(v) {
+
+  ['public','team','admin'].forEach(x => {
+
+    document
+      .getElementById(x)
+      .classList.toggle(
+        'hidden',
+        x !== v
+      );
+
+  });
+
+}
+
+
+// -------------------------
+// ADMIN LOGIN
+// -------------------------
+
+function auth() {
+
+  emit(
+    'admin:auth',
+    document.getElementById('pin').value
+  );
+
+}
+
+
+// -------------------------
+// TEAM SELECTION
+// -------------------------
+
+function teamChanged() {
+
+  authenticatedTeam = null;
+
+  document
+    .getElementById('teamUnlocked')
+    .classList.add('hidden');
+
+  document
+    .getElementById('teamLogin')
+    .classList.remove('hidden');
+
+  document
+    .getElementById('teamPin').value = '';
+
+  const id =
+    Number(
+      document.getElementById('teamSelect').value
+    );
+
+  document
+    .getElementById('pinTitle')
+    .textContent =
+      `Team ${id} Authentication`;
+
+}
+
+
+// -------------------------
+// TEAM LOGIN
+// -------------------------
+
+function teamAuth() {
+
+  const teamId =
+    Number(
+      document.getElementById('teamSelect').value
+    );
+
+  const pin =
+    document.getElementById('teamPin').value.trim();
+
+  if (!pin) {
+    alert('Please enter your Team PIN');
+    return;
+  }
+
+  s.emit('team:auth', {
+    teamId,
+    pin
+  });
+
+}
+
+
+// -------------------------
+// BID
+// -------------------------
+
+function bid() {
+
+  if (!authenticatedTeam) {
+    alert('Please authenticate your team first.');
+    return;
+  }
+
+  s.emit(
+    'team:bid',
+    authenticatedTeam
+  );
+
+}
+
+
+// -------------------------
+// TEAM CARDS
+// -------------------------
+
+function cards(el) {
+
+  el.innerHTML =
+    S.teams.map(t => `
+
+      <div class="team">
+
+        <b>${t.name}</b>
+
+        <span class="muted">
+          ₹${fmt(t.purse)} left · ${t.count}/9
+        </span>
+
+      </div>
+
+    `).join('');
+
+}
+
+
+// -------------------------
+// RENDER
+// -------------------------
+
+function render() {
+
+  if (!S) return;
+
+  const p = S.current || {};
+
+
+  // Player
+
+  ['pname','tname','aname'].forEach(id => {
+
+    document
+      .getElementById(id)
+      .textContent =
+        p.name || 'Auction complete';
+
+  });
+
+
+  // Role
+
+  ['prole','trole','arole'].forEach(id => {
+
+    document
+      .getElementById(id)
+      .textContent =
+        p.role || '';
+
+  });
+
+
+  // Bid
+
+  ['pbid','tbid','abid'].forEach(id => {
+
+    document
+      .getElementById(id)
+      .textContent =
+        '₹' + fmt(S.state.bid);
+
+  });
+
+
+  // Leader
+
+  ['pleader','tleader','aleader'].forEach(id => {
+
+    document
+      .getElementById(id)
+      .textContent =
+        S.state.leader
+          ? S.teams[S.state.leader - 1].name
+          : 'No bids yet';
+
+  });
+
+
+  // Stats
+
+  document
+    .getElementById('pnum')
+    .textContent =
+      Math.min(
+        S.state.index + 1,
+        S.players.length
+      ) +
+      '/' +
+      S.players.length;
+
+
+  document
+    .getElementById('sold')
+    .textContent =
+      S.players.filter(
+        p => p.status === 'sold'
+      ).length;
+
+
+  document
+    .getElementById('status')
+    .textContent =
+      S.state.finished
+        ? 'Finished'
+        : S.state.open
+          ? 'Bidding LIVE'
+          : 'Paused';
+
+
+  // Teams
+
+  cards(
+    document.getElementById('teams')
+  );
+
+  cards(
+    document.getElementById('ateams')
+  );
+
+
+  // Logs
+
+  const log =
+    S.state.history.map(x => `
+
+      <div class="row">
+
+        <span>${x.text}</span>
+
+        <span class="muted">
+          ${new Date(x.time).toLocaleTimeString()}
+        </span>
+
+      </div>
+
+    `).join('');
+
+
+  document
+    .getElementById('plog')
+    .innerHTML = log;
+
+  document
+    .getElementById('alog')
+    .innerHTML = log;
+
+
+  // Team selector
+
+  const sel =
+    document.getElementById('teamSelect');
+
+
+  if (!sel.options.length) {
+
+    sel.innerHTML =
+      S.teams.map(t => `
+
+        <option value="${t.id}">
+          ${t.name}
+        </option>
+
+      `).join('');
+
+  }
+
+
+  // My team
+
+  const selectedId =
+    Number(sel.value || 1);
+
+  const t =
+    S.teams[selectedId - 1];
+
+
+  document
+    .getElementById('myteam')
+    .innerHTML = `
+
+      <b>${t.name}</b>
+
+      <p>
+        ₹${fmt(t.purse)}
+        remaining ·
+        ${t.count}/9 players
+      </p>
+
+    `;
+
+}
+
 view('public');
-</script></body></html>
+
+</script>
+
+</body>
+</html>
