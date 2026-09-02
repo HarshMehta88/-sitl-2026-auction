@@ -18,11 +18,14 @@ function loadPlayers(){
 
     const idKey=findKey(['playerid','id','playernumber','number']);
     const nameKey=findKey([
-      'playername',
-      'playersname',
-      'name',
-      'player'
-    ]);
+  'playername',
+  'playersname',
+  'name',
+  'player',
+  'fullname',
+  'nameofplayer',
+  'playerfullname'
+]);   
     const roleKey=findKey([
       'role',
       'playingrole',
