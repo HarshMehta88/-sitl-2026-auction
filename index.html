@@ -194,6 +194,56 @@ button.bad{
   font-size:24px;
   padding:18px
 }
+  .timer{
+
+  font-size:clamp(42px,8vw,72px);
+
+  font-weight:900;
+
+  text-align:center;
+
+  margin:10px 0
+
+}
+
+.going{
+
+  font-size:22px;
+
+  font-weight:900;
+
+  text-align:center;
+
+  margin-bottom:12px;
+
+  min-height:30px
+
+}
+
+.admin-going{
+
+  display:grid;
+
+  grid-template-columns:repeat(3,1fr);
+
+  gap:8px;
+
+  margin-top:12px
+
+}
+
+.admin-going button{
+
+  font-size:15px
+
+}
+
+@media(max-width:600px){
+
+  .admin-going{
+
+    grid-template-columns:1fr}
+}
 
 .stats{
   display:grid;
@@ -303,7 +353,11 @@ Waiting…
 <span id="pleader" class="pill">
 No bids yet
 </span>
+  <div id="ptimer" class="timer">
+30
+</div>
 
+<div id="pgoing" class="going"></div>
 </div>
 
 
@@ -418,6 +472,11 @@ Current player
 <span id="tleader" class="pill">
 No bids yet
 </span>
+   <div id="ttimer" class="timer">
+30
+</div>
+
+<div id="tgoing" class="going"></div> 
 
 <button
   class="primary bigbid"
@@ -540,8 +599,27 @@ Current player
 <div id="abid" class="bid"></div>
 
 <span id="aleader" class="pill"></span>
+<div id="atimer" class="timer">
+30
+</div>
 
+<div id="agoing" class="going"></div>
 
+<div class="admin-going">
+
+  <button onclick="emit('admin:going',1)">
+    GOING ONCE
+  </button>
+
+  <button onclick="emit('admin:going',2)">
+    GOING TWICE
+  </button>
+
+  <button onclick="emit('admin:going',3)">
+    GOING THRICE
+  </button>
+
+</div>
 <div class="card" style="margin-top:16px">
 
 <h3>Teams</h3>
