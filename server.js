@@ -29,29 +29,23 @@ function loadPlayers() {
   const ws =
     wb.Sheets['Auction Players'] ||
     wb.Sheets[wb.SheetNames[0]];
-
   const rows = XLSX.utils.sheet_to_json(ws, { defval: '' });
-
   return rows.map((r, i) => {
     const keys = Object.keys(r);
-
     const findKey = (names) => {
       return keys.find(k => {
         const clean = k
           .toLowerCase()
           .replace(/[^a-z0-9]/g, '');
-
         return names.includes(clean);
       });
     };
-
     const idKey = findKey([
       'playerid',
       'id',
       'playernumber',
       'number'
     ]);
-
     const nameKey = findKey([
       'playername',
       'playersname',
@@ -62,59 +56,60 @@ function loadPlayers() {
       'nameofplayer',
       'playerfullname'
     ]);
-
     const roleKey = findKey([
       'role',
       'playingrole',
       'playerrole'
     ]);
-
+    const battingKey = findKey([
+      'batting',
+      'battingstyle',
+      'batstyle',
+      'battingtype'
+    ]);
+    const bowlingKey = findKey([
+      'bowling',
+      'bowlingstyle',
+      'bowlstyle',
+      'bowlingtype'
+    ]);
+    const keeperKey = findKey([
+      'keeper',
+      'wicketkeeper',
+      'wicketkeeperstatus',
+      'wk',
+      'iswicketkeeper'
+    ]);
     return {
       id: String(
         r[idKey] ||
         `P${String(i + 1).padStart(3, '0')}`
       ),
-
       name: String(
         r[nameKey] ||
         `Player ${i + 1}`
       ),
-
       role: String(
         r[roleKey] ||
         'Registered Player'
       ),
-
+      batting: String(
+        r[battingKey] ||
+        ''
+      ),
+      bowling: String(
+        r[bowlingKey] ||
+        ''
+      ),
+      wicketkeeper: String(
+        r[keeperKey] ||
+        ''
+      ),
       base: 10000,
       status: 'available'
     };
   });
-}
-
-let players = loadPlayers();
-
-let teams = Array.from(
-  { length: 6 },
-  (_, i) => ({
-    id: i + 1,
-    name: `Team ${i + 1}`,
-    purse: 500000,
-    count: 0,
-    players: []
-  })
-);
-
-let state = {
-  index: 0,
-  open: false,
-  bid: 10000,
-  leader: null,
-  history: [],
-  started: false,
-  finished: false
-};
-
-function current() {
+}function current() {
   return players[state.index] || null;
 }
 
