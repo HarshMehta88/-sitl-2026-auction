@@ -129,14 +129,49 @@ button.bad{
 .team{
   background:#172340;
   border-radius:14px;
-  padding:13px
+  padding:14px;
+  border:1px solid #2a3a5c
 }
 
 .team b{
   display:block;
-  font-size:18px
+  font-size:18px;
+  margin-bottom:5px
 }
 
+.teamplayers{
+  margin-top:12px;
+  border-top:1px solid #2a3a5c;
+  padding-top:8px
+}
+
+.teamplayer{
+  display:flex;
+  justify-content:space-between;
+  gap:8px;
+  padding:6px 0;
+  border-bottom:1px solid #23304b;
+  font-size:14px
+}
+
+.teamplayer:last-child{
+  border-bottom:0
+}
+
+.teamplayername{
+  font-weight:700
+}
+
+.teamplayerprice{
+  color:#9eabc6;
+  white-space:nowrap
+}
+
+.noplayers{
+  margin-top:10px;
+  color:#71809f;
+  font-size:13px
+}
 .hidden{
   display:none
 }
@@ -403,7 +438,13 @@ No bids yet
 <div id="myteam"></div>
 
 </div>
+  <div class="card">
 
+<h3>🏆 All Teams Being Built</h3>
+
+<div id="allteams" class="teams"></div>
+
+</div>
 </section>
 
 
@@ -779,22 +820,54 @@ function bid() {
 function cards(el) {
 
   el.innerHTML =
-    S.teams.map(t => `
+    S.teams.map(t => {
 
-      <div class="team">
+      const players =
+        t.players && t.players.length
+          ? `
+            <div class="teamplayers">
 
-        <b>${t.name}</b>
+              ${t.players.map((p, i) => `
+                <div class="teamplayer">
 
-        <span class="muted">
-          ₹${fmt(t.purse)} left · ${t.count}/9
-        </span>
+                  <span class="teamplayername">
+                    ${i + 1}. ${p.name}
+                  </span>
 
-      </div>
+                  <span class="teamplayerprice">
+                    ₹${fmt(p.price)}
+                  </span>
 
-    `).join('');
+                </div>
+              `).join('')}
+
+            </div>
+          `
+          : `
+            <div class="noplayers">
+              No players purchased yet
+            </div>
+          `;
+
+      return `
+
+        <div class="team">
+
+          <b>${t.name}</b>
+
+          <span class="muted">
+            ₹${fmt(t.purse)} left · ${t.count}/9 players
+          </span>
+
+          ${players}
+
+        </div>
+
+      `;
+
+    }).join('');
 
 }
-
 
 // -------------------------
 // RENDER
