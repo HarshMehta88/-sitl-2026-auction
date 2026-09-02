@@ -1036,17 +1036,22 @@ const details = `
         '₹' + fmt(S.state.bid);
 
   });
-  // Auction Timer
+  // Auction Status
 const timer = document.getElementById('auctionTimer');
 
 if (timer) {
-  if (S.state.open) {
-    timer.textContent = 'Bidding LIVE';
+  if (S.state.going === 1) {
+    timer.textContent = 'GOING ONCE';
+  } else if (S.state.going === 2) {
+    timer.textContent = 'GOING TWICE';
+  } else if (S.state.going === 3) {
+    timer.textContent = 'GOING THRICE';
+  } else if (S.state.open) {
+    timer.textContent = 'BIDDING LIVE';
   } else {
-    timer.textContent = 'Paused';
+    timer.textContent = 'PAUSED';
   }
 }
-
   // Leader
 
   ['pleader','tleader','aleader'].forEach(id => {
