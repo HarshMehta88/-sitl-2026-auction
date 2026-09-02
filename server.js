@@ -1,19 +1,8 @@
 const express=require('express'); const http=require('http'); const {Server}=require('socket.io'); const XLSX=require('xlsx'); const path=require('path');
 const app=express(); const server=http.createServer(app); const io=new Server(server); app.use(express.json()); app.use(express.static(__dirname));
 const PORT=process.env.PORT||3000; const ADMIN_PIN=process.env.ADMIN_PIN||'2026';
-function loadPlayers(){
-  const wb=XLSX.readFile(path.join(__dirname,'players.xlsx'));
-  const ws=wb.Sheets['Auction Players']||wb.Sheets[wb.SheetNames[0]];
-  const rows=XLSX.utils.sheet_to_json(ws,{defval:''});
-
-  return rows.map((r,i)=>({
-    id:String(r['Player ID']||`P${String(i+1).padStart(3,'0')}`),
-    name:String(r['Player Name']),
-    role:String(r['Role']||'Registered Player'),
-    base:10000,
-    status:'available'
-  }));
-}let players=loadPlayers(); let teams=Array.from({length:6},(_,i)=>({id:i+1,name:`Team ${i+1}`,purse:500000,count:0,players:[]})); let state={index:0,open:false,bid:10000,leader:null,history:[],started:false,finished:false};
+function loadPlayers(){const wb=XLSX.readFile(path.join(__dirname,'players.xlsx'));const ws=wb.Sheets['Auction Players']||wb.Sheets[wb.SheetNames[0]];const rows=XLSX.utils.sheet_to_json(ws,{defval:''});return rows.map((r,i)=>({id:String(r['Player ID']||`P${String(i+1).padStart(3,'0')}`),name:String(r['Player Name']),role:String(r['Role']||'Registered Player'),base:10000,status:'available'}));}
+let players=loadPlayers(); let teams=Array.from({length:6},(_,i)=>({id:i+1,name:`Team ${i+1}`,purse:500000,count:0,players:[]})); let state={index:0,open:false,bid:10000,leader:null,history:[],started:false,finished:false};
 const minSlots=()=>Math.max(0,9-teams.reduce((a,t)=>a+t.count,0));
 function current(){return players[state.index]||null}
 function nextBid(v){return v<50000?v+5000:v+10000}
