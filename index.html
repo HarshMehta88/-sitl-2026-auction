@@ -682,11 +682,34 @@ s.on('disconnect', () => {
 // STATE
 // -------------------------
 
+let timerInterval = null;
+let timerValue = 30;
+
 s.on('state', x => {
   S = x;
+
+  // Reset timer whenever a new server state arrives
+  timerValue = Number(
+    x.state && x.state.timer != null
+      ? x.state.timer
+      : 30
+  );
+
+  updateTimerDisplay();
+
+  clearInterval(timerInterval);
+
+  timerInterval = setInterval(() => {
+
+    if (timerValue > 0) {
+      timerValue--;
+      updateTimerDisplay();
+    }
+
+  }, 1000);
+
   render();
 });
-
 
 // -------------------------
 // ADMIN AUTH
@@ -777,6 +800,19 @@ function fmt(n) {
 function emit(e, v) {
   s.emit(e, v);
 }
+ function updateTimerDisplay() {
+
+  ['ptimer', 'ttimer', 'atimer'].forEach(id => {
+
+    const el = document.getElementById(id);
+
+    if (el) {
+      el.textContent = timerValue;
+    }
+
+  });
+
+} 
 
 
 // -------------------------
