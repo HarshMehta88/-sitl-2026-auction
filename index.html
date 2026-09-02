@@ -1037,22 +1037,22 @@ const details = `
 
   });
   // Auction Status
-const timer = document.getElementById('auctionTimer');
 
-if (timer) {
-  if (S.state.going === 1) {
-    timer.textContent = 'GOING ONCE';
-  } else if (S.state.going === 2) {
-    timer.textContent = 'GOING TWICE';
-  } else if (S.state.going === 3) {
-    timer.textContent = 'GOING THRICE';
-  } else if (S.state.open) {
-    timer.textContent = 'BIDDING LIVE';
-  } else {
-    timer.textContent = 'PAUSED';
+const goingText =
+  S.state.going === 1 ? 'GOING ONCE' :
+  S.state.going === 2 ? 'GOING TWICE' :
+  S.state.going === 3 ? 'GOING THRICE' :
+  '';
+
+['pgoing', 'tgoing', 'agoing'].forEach(id => {
+
+  const el = document.getElementById(id);
+
+  if (el) {
+    el.textContent = goingText;
   }
-}
-  // Leader
+
+});  // Leader
 
   ['pleader','tleader','aleader'].forEach(id => {
 
