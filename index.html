@@ -1036,7 +1036,16 @@ const details = `
         '₹' + fmt(S.state.bid);
 
   });
+  // Auction Timer
+const timer = document.getElementById('auctionTimer');
 
+if (timer) {
+  if (S.state.open) {
+    timer.textContent = 'Bidding LIVE';
+  } else {
+    timer.textContent = 'Paused';
+  }
+}
 
   // Leader
 
