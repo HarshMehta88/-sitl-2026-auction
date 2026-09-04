@@ -158,42 +158,42 @@ let players = loadPlayers();
 const teams = [
   {
     id: 1,
-    name: 'Team 1',
+    name: 'Team Jiimit',
     purse: 500000,
     count: 0,
     players: []
   },
   {
     id: 2,
-    name: 'Team 2',
+    name: 'Team Harsh A',
     purse: 500000,
     count: 0,
     players: []
   },
   {
     id: 3,
-    name: 'Team 3',
+    name: 'Team Priyam',
     purse: 500000,
     count: 0,
     players: []
   },
   {
     id: 4,
-    name: 'Team 4',
+    name: 'Team Rohit',
     purse: 500000,
     count: 0,
     players: []
   },
   {
     id: 5,
-    name: 'Team 5',
+    name: 'Team Mohit',
     purse: 500000,
     count: 0,
     players: []
   },
   {
     id: 6,
-    name: 'Team 6',
+    name: 'Team Bothra',
     purse: 500000,
     count: 0,
     players: []
