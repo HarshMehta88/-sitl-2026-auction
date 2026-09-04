@@ -357,6 +357,9 @@ function advance() {
 
   state.index++;
 
+  // Clear bid history for the new player
+  state.bidHistory = [];
+
   if (state.index >= players.length) {
 
     state.finished = true;
@@ -370,7 +373,6 @@ function advance() {
     resetBid();
   }
 }
-
 
 // =====================================
 // SOCKET CONNECTION
