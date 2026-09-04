@@ -686,7 +686,7 @@ socket.on('admin:undo', () => {
       previous.teamId;
 
     state.bid =
-      nextBid(previous.amount);
+      previous.amount;
 
   } else {
 
