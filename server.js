@@ -223,7 +223,7 @@ const state = {
 
   going: 0,
 
-  history: []
+  bidHistory: []
 };
 
 // =====================================
@@ -652,104 +652,62 @@ state.timer = 30;
   });
 
 
-  // ===================================
-  // UNDO
-  // ===================================
+  // UNDO LAST BID
+// ===================================
 
-  socket.on('admin:undo', () => {
+socket.on('admin:undo', () => {
 
-    if (!socket.isAdmin) return;
+  if (!socket.isAdmin) return;
+
+  if (!state.open) return;
+
+  if (!state.bidHistory.length) return;
 
 
-    const last =
-      state.history.find(
+  // Remove the most recent bid
+  state.bidHistory.pop();
+
+
+  // Find the previous bid for this player
+  const previous =
+    state.bidHistory
+      .filter(
         h =>
-          h.text.startsWith('SOLD')
-      );
+          h.playerIndex === state.index
+      )
+      .at(-1);
 
 
-    if (!last) return;
+  if (previous) {
+
+    state.leader =
+      previous.teamId;
+
+    state.bid =
+      nextBid(previous.amount);
+
+  } else {
+
+    // No previous bid — return to base price
+    state.leader = null;
+
+    state.bid =
+      current()?.base || 10000;
+  }
 
 
-    const match =
-      last.text.match(
-        /SOLD — (.+) to Team (\d+) for ₹([\d,]+)/
-      );
+  // Restart countdown
+  state.timer = 30;
+  state.going = 0;
 
 
-    if (!match) return;
+  addLog(
+    `UNDO — ${current()?.name}`
+  );
 
 
-    const [, name, tid, priceText] =
-      match;
-
-
-    const price =
-      Number(
-        priceText.replace(/,/g, '')
-      );
-
-
-    const t =
-      teams[Number(tid) - 1];
-
-
-    const pi =
-      players.findIndex(
-        p =>
-          p.name === name &&
-          p.status === 'sold'
-      );
-
-
-    if (pi < 0 || !t) return;
-
-
-    const p =
-      players[pi];
-
-
-    t.purse += price;
-
-    t.count--;
-
-
-    t.players =
-      t.players.filter(
-        x =>
-          x.id !== p.id
-      );
-
-
-    p.status = 'available';
-
-    delete p.soldTo;
-
-    delete p.soldPrice;
-
-
-    state.index = pi;
-
-    state.finished = false;
-
-
-    state.history =
-      state.history.filter(
-        h => h !== last
-      );
-
-
-    resetBid();
-
-
-    addLog(
-      `UNDO — ${p.name}`
-    );
-
-
-    emit();
-  });
-
+  emit();
+});
 
   // ===================================
   // TEAM BIDDING
@@ -810,8 +768,11 @@ state.timer = 30;
 
         return;
       }
-
-
+state.bidHistory.push({
+  teamId,
+  amount,
+  playerIndex: state.index
+});
      state.leader =
   teamId;
 
