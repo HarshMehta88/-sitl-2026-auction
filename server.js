@@ -224,6 +224,8 @@ const state = {
   going: 0,
 
   bidHistory: []
+
+  history: []
 };
 
 // =====================================
