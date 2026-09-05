@@ -756,7 +756,7 @@ socket.on('admin:undo', () => {
       if (state.finished) return;
 
 const amount =
-  state.leader;
+  state.bid;
 
 
       if (
