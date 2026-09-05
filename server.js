@@ -752,10 +752,10 @@ socket.on('admin:undo', () => {
 
       if (state.finished) return;
 
-
-      const amount =
-        state.bid;
-
+const amount =
+  state.leader
+    ? state.bid
+    : current()?.base || 10000;
 
       if (
         state.leader === teamId
