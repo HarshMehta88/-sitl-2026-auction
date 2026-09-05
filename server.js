@@ -223,7 +223,7 @@ const state = {
 
   going: 0,
 
-  bidHistory: []
+  bidHistory: [],
 
   history: []
 };
