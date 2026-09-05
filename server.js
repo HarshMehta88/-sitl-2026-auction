@@ -494,8 +494,11 @@ io.on('connection', socket => {
 
   state.started = true;
 
-  state.open = true;
+state.leader = null;
 
+state.bid = current()?.base || 10000;
+
+state.open = true;
   state.going = 0;
 
   state.timer = 30;
