@@ -559,59 +559,73 @@ socket.on('admin:going', stage => {
   // SOLD
   // ===================================
 
-  socket.on('admin:sold', () => {
+socket.on('admin:sold', () => {
 
-    if (!socket.isAdmin) return;
+  if (!socket.isAdmin) return;
 
-    if (!state.open) return;
+  if (!state.open) return;
 
-    if (!state.leader) return;
+  if (!state.leader) return;
 
-    const t =
-      teams[state.leader - 1];
+  const t =
+    teams[state.leader - 1];
 
-    const p =
-      current();
+  const p =
+    current();
 
-    if (!t || !p) return;
-
-
-    t.purse -= state.bid;
-
-    t.count++;
+  if (!t || !p) return;
 
 
-    t.players.push({
+  // Get the ACTUAL last bid
+  const winningBid =
+    state.bidHistory
+      .filter(
+        h =>
+          h.playerIndex === state.index
+      )
+      .at(-1);
 
-      id: p.id,
-
-      name: p.name,
-
-      role: p.role,
-
-      price: state.bid
-    });
-
-
-    p.status = 'sold';
-
-    p.soldTo = t.id;
-
-    p.soldPrice = state.bid;
+  if (!winningBid) return;
 
 
-    addLog(
-      `SOLD — ${p.name} to ${t.name} for ₹${state.bid.toLocaleString('en-IN')}`
-    );
+  // Deduct the ACTUAL winning bid
+  t.purse -= winningBid.amount;
+
+  t.count++;
 
 
-    advance();
-    state.going = 0;
+  t.players.push({
 
-state.timer = 30;
-    emit();
+    id: p.id,
+
+    name: p.name,
+
+    role: p.role,
+
+    price: winningBid.amount
   });
 
+
+  p.status = 'sold';
+
+  p.soldTo = t.id;
+
+  p.soldPrice = winningBid.amount;
+
+
+  addLog(
+    `SOLD — ${p.name} to ${t.name} for ₹${winningBid.amount.toLocaleString('en-IN')}`
+  );
+
+
+  advance();
+
+  state.going = 0;
+
+  state.timer = 30;
+
+  emit();
+});
 
   // ===================================
   // UNSOLD
