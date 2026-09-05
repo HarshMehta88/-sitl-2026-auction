@@ -1153,8 +1153,22 @@ cards(
   .getElementById('tlog')
 
   .innerHTML = log;   
+  
+// Bid
 
+['pbid','tbid','abid'].forEach(id => {
 
+  document
+    .getElementById(id)
+    .textContent =
+      '₹' +
+      fmt(
+        S.state.leader
+          ? S.state.bid
+          : p.base
+      );
+
+});
   // Team selector
 
   const sel =
